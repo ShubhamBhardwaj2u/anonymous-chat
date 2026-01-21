@@ -1,12 +1,14 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
+
+// Serve front-end
+app.use(express.static(path.join(__dirname)));
 
 let waitingUser = null;
 const activeChats = new Map(); // socketId -> partnerId
@@ -34,9 +36,7 @@ io.on('connection', socket => {
 
   socket.on('send_message', msg => {
     const partner = activeChats.get(socket.id);
-    if (partner) {
-      io.to(partner).emit('message', msg);
-    }
+    if (partner) io.to(partner).emit('message', msg);
   });
 
   socket.on('end_chat', () => {
@@ -51,15 +51,11 @@ io.on('connection', socket => {
 
   function endSession(id, event) {
     const partner = activeChats.get(id);
-    if (partner) {
-      io.to(partner).emit(event);
-      activeChats.delete(partner);
-    }
+    if (partner) io.to(partner).emit(event);
+    if (partner) activeChats.delete(partner);
     activeChats.delete(id);
   }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log('Server running on port', PORT);
-});
+server.listen(PORT, () => console.log('Server running on port', PORT));

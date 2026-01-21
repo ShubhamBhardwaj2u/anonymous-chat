@@ -7,75 +7,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #fff;
-    }
-    .app {
-      width: 100%;
-      max-width: 420px;
-      height: 90vh;
-      background: #111;
-      border-radius: 18px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      overflow: hidden;
-    }
-    .header {
-      padding: 16px;
-      text-align: center;
-      font-weight: 700;
-      background: #181818;
-      border-bottom: 1px solid #222;
-    }
-    .status {
-      text-align: center;
-      padding: 8px;
-      font-size: 13px;
-      background: #141414;
-      color: #aaa;
-    }
-    .chat {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); height: 100vh; display: flex; justify-content: center; align-items: center; color: #fff; }
+    .app { width: 100%; max-width: 420px; height: 90vh; background: #111; border-radius: 18px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }
+    .header { padding: 16px; text-align: center; font-weight: 700; background: #181818; border-bottom: 1px solid #222; }
+    .status { text-align: center; padding: 8px; font-size: 13px; background: #141414; color: #aaa; }
+    .chat { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .message { max-width: 75%; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
     .you { align-self: flex-end; background: #2563eb; }
     .stranger { align-self: flex-start; background: #2a2a2a; }
     .system { align-self: center; font-size: 12px; color: #888; }
-    .controls {
-      padding: 12px;
-      border-top: 1px solid #222;
-      background: #181818;
-      display: flex;
-      gap: 8px;
-    }
-    input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      background: #222;
-      color: #fff;
-    }
-    button {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
+    .controls { padding: 12px; border-top: 1px solid #222; background: #181818; display: flex; gap: 8px; }
+    input { flex: 1; padding: 10px; border-radius: 10px; border: none; background: #222; color: #fff; }
+    button { padding: 10px 14px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; }
     .send { background: #2563eb; color: white; }
     .primary { background: #16a34a; color: white; margin: 12px; }
     .danger { background: #dc2626; color: white; }
@@ -97,7 +40,7 @@
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-  const socket = io(); 
+  const socket = io(); // auto-connect to Render domain
   const chat = document.getElementById('chat');
   const status = document.getElementById('status');
   const startBtn = document.getElementById('startBtn');
@@ -110,13 +53,8 @@
   let lastSystem = '';
 
   function updateUI() {
-    if (state === 'IDLE') {
-      startBtn.classList.remove('hidden');
-      controls.classList.add('hidden');
-    } else {
-      startBtn.classList.add('hidden');
-      controls.classList.remove('hidden');
-    }
+    if (state === 'IDLE') { startBtn.classList.remove('hidden'); controls.classList.add('hidden'); }
+    else { startBtn.classList.add('hidden'); controls.classList.remove('hidden'); }
   }
 
   updateUI();
@@ -151,10 +89,7 @@
   };
 
   sendBtn.onclick = () => {
-    if (state !== 'CONNECTED') {
-      system('Not connected to any user');
-      return;
-    }
+    if (state !== 'CONNECTED') { system('Not connected to any user'); return; }
     const text = msgInput.value.trim();
     if (!text) return;
     addMsg(text, 'you');
@@ -162,39 +97,13 @@
     msgInput.value = '';
   };
 
-  endBtn.onclick = () => {
-    if (state === 'IDLE') return;
-    socket.emit('end_chat');
-  };
+  endBtn.onclick = () => { if (state === 'IDLE') return; socket.emit('end_chat'); };
 
-  socket.on('searching', () => {
-    state = 'SEARCHING';
-    status.innerText = 'Searching for a stranger...';
-    updateUI();
-  });
-
-  socket.on('matched', () => {
-    state = 'CONNECTED';
-    status.innerText = 'Connected to a stranger';
-    system('You are now connected');
-    updateUI();
-  });
-
+  socket.on('searching', () => { state = 'SEARCHING'; status.innerText = 'Searching for a stranger...'; updateUI(); });
+  socket.on('matched', () => { state = 'CONNECTED'; status.innerText = 'Connected to a stranger'; system('You are now connected'); updateUI(); });
   socket.on('message', msg => addMsg(msg, 'stranger'));
-
-  socket.on('partner_left', () => {
-    state = 'IDLE';
-    status.innerText = 'Idle';
-    system('Stranger left the chat');
-    updateUI();
-  });
-
-  socket.on('chat_ended', () => {
-    state = 'IDLE';
-    status.innerText = 'Idle';
-    system('Chat ended');
-    updateUI();
-  });
+  socket.on('partner_left', () => { state = 'IDLE'; status.innerText = 'Idle'; system('Stranger left the chat'); updateUI(); });
+  socket.on('chat_ended', () => { state = 'IDLE'; status.innerText = 'Idle'; system('Chat ended'); updateUI(); });
 </script>
 </body>
 </html>

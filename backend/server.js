@@ -7,9 +7,15 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// Serve front-end
-app.use(express.static(path.join(__dirname)));
+// Serve frontend folder
+app.use(express.static(path.join(__dirname, 'frontend')));
 
+// Serve index.html at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
+// ---------- Socket.IO logic ----------
 let waitingUser = null;
 const activeChats = new Map(); // socketId -> partnerId
 
@@ -39,9 +45,7 @@ io.on('connection', socket => {
     if (partner) io.to(partner).emit('message', msg);
   });
 
-  socket.on('end_chat', () => {
-    endSession(socket.id, 'chat_ended');
-  });
+  socket.on('end_chat', () => endSession(socket.id, 'chat_ended'));
 
   socket.on('disconnect', () => {
     endSession(socket.id, 'partner_left');

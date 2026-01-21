@@ -7,12 +7,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// Serve frontend folder
-app.use(express.static(path.join(__dirname, 'frontend')));
+// Serve frontend folder (index.html + any static files)
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Serve index.html at root
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
 
 // ---------- Socket.IO logic ----------

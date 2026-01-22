@@ -1,176 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Anonymous Chat</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-* { box-sizing: border-box; }
-body { margin: 0; font-family: 'Inter', sans-serif; height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: #fff; }
-.app { position: relative; width: 95%; max-width: 420px; height: 90vh; background: #111; border-radius: 18px; display: flex; flex-direction: column; overflow: hidden; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anonymous Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-/* Header and status */
-.header { padding: 16px; text-align: center; font-weight: 700; background: #181818; font-size: 1.2rem; }
-.status { padding: 8px; font-size: 0.9rem; text-align: center; background: #141414; color: #aaa; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+    }
 
-/* Chat container */
-.chat { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 60px; word-wrap: break-word; }
+    .app {
+      position: relative;
+      width: 95%;
+      max-width: 520px;
+      height: 95%;
+      background: #111;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-/* Messages */
-.message { max-width: 75%; padding: 10px 12px; border-radius: 12px; font-size: 0.95rem; word-wrap: break-word; }
-.you { align-self: flex-end; background: #2563eb; }
-.stranger { align-self: flex-start; background: #2a2a2a; }
-.system { align-self: center; font-size: 0.8rem; color: #888; }
 
-/* Controls */
-.controls { padding: 10px; display: flex; gap: 8px; background: #181818; border-top: 1px solid #222; }
-input { flex: 1; padding: 10px; border-radius: 10px; border: none; background: #222; color: #fff; font-size: 0.95rem; }
-button { padding: 10px 14px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
-.send { background: #2563eb; color: #fff; }
-.primary { background: #16a34a; color: #fff; margin: 12px; }
-.danger { background: #dc2626; color: #fff; }
-.hidden { display: none; }
-button:disabled, input:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Header and status */
+    .header {
+      padding: 16px;
+      text-align: center;
+      font-weight: 700;
+      background: #181818;
+      font-size: 1.2rem;
+    }
 
-/* Typing indicator */
-@keyframes typingDots {
-  0% { content: '.'; }
-  33% { content: '..'; }
-  66% { content: '...'; }
-  100% { content: '.'; }
-}
-.typing-indicator::after {
-  content: '.';
-  animation: typingDots 1s steps(3) infinite;
-}
-#typingIndicator {
-  position: absolute;
-  bottom: 70px; /* above input */
-  left: 16px;
-  font-size: 1rem;
-  color: #aaa;
-  font-style: italic;
-  height: 20px;
-  pointer-events: none;
-}
+    .status {
+      padding: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+      background: #141414;
+      color: #aaa;
+    }
 
-/* Mobile adjustments */
-@media (max-width: 480px) {
-  .app { height: 95vh; border-radius: 12px; }
-  .header { font-size: 1rem; padding: 12px; }
-  .status { font-size: 0.8rem; }
-  .message { font-size: 0.9rem; padding: 8px 10px; }
-  .controls { padding: 8px; gap: 6px; }
-  input, button { font-size: 0.9rem; padding: 8px 10px; }
-  #typingIndicator { font-size: 0.9rem; bottom: 65px; }
-}
-</style>
+    /* Chat container */
+    .chat {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 60px;
+      word-wrap: break-word;
+    }
+
+    /* Messages */
+    .message {
+      max-width: 75%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      word-wrap: break-word;
+    }
+
+    .you {
+      align-self: flex-end;
+      background: #2563eb;
+    }
+
+    .stranger {
+      align-self: flex-start;
+      background: #2a2a2a;
+    }
+
+    .system {
+      align-self: center;
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    /* Controls */
+    .controls {
+      padding: 10px;
+      display: flex;
+      gap: 8px;
+      background: #181818;
+      border-top: 1px solid #222;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background: #222;
+      color: #fff;
+      font-size: 0.95rem;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .send {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .primary {
+      background: #16a34a;
+      color: #fff;
+      margin: 12px;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button:disabled,
+    input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Typing indicator */
+    @keyframes typingDots {
+      0% { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+      100% { content: '.'; }
+    }
+
+    .typing-indicator::after {
+      content: '.';
+      animation: typingDots 1s steps(3) infinite;
+    }
+
+    #typingIndicator {
+      position: absolute;
+      bottom: 70px; /* above input */
+      left: 16px;
+      font-size: 1rem;
+      color: #aaa;
+      font-style: italic;
+      height: 20px;
+      pointer-events: none;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .app { height: 95vh; border-radius: 12px; }
+      .header { font-size: 1rem; padding: 12px; }
+      .status { font-size: 0.8rem; }
+      .message { font-size: 0.9rem; padding: 8px 10px; }
+      .controls { padding: 8px; gap: 6px; }
+      input, button { font-size: 0.9rem; padding: 8px 10px; }
+      #typingIndicator { font-size: 0.9rem; bottom: 65px; }
+    }
+  </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">Anonymous Chat</div>
-  <div id="status" class="status">Idle</div>
-  <div id="chat" class="chat"></div>
-  <div id="typingIndicator" class="system typing-indicator hidden"></div>
-  <button id="startBtn" class="primary">Start Chat</button>
-  <div class="controls hidden">
-    <input id="msg" placeholder="Type a message..." disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-    <button id="sendBtn" class="send" disabled>Send</button>
-    <button id="endBtn" class="danger">End</button>
+  <div class="app">
+    <div class="header">Anonymous Chat</div>
+    <div id="status" class="status">Idle</div>
+    <div id="chat" class="chat"></div>
+    <div id="typingIndicator" class="system typing-indicator hidden"></div>
+    <button id="startBtn" class="primary">Start Chat</button>
+    <div class="controls hidden">
+      <input id="msg" placeholder="Type a message..." disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button id="sendBtn" class="send" disabled>Send</button>
+      <button id="endBtn" class="danger">End</button>
+    </div>
   </div>
-</div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script>
-const socket = io(); 
-const chat = document.getElementById('chat');
-const status = document.getElementById('status');
-const startBtn = document.getElementById('startBtn');
-const sendBtn = document.getElementById('sendBtn');
-const endBtn = document.getElementById('endBtn');
-const msgInput = document.getElementById('msg');
-const controls = document.querySelector('.controls');
-const typingDiv = document.getElementById('typingIndicator');
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
 
-let state = 'IDLE';
-let lastSystem = '';
-let stopTypingTimeout = null;
+    const chat = document.getElementById('chat');
+    const status = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const endBtn = document.getElementById('endBtn');
+    const msgInput = document.getElementById('msg');
+    const controls = document.querySelector('.controls');
+    const typingDiv = document.getElementById('typingIndicator');
 
-function updateUI() {
-  startBtn.classList.toggle('hidden', state !== 'IDLE');
-  controls.classList.toggle('hidden', state === 'IDLE');
-  msgInput.disabled = state !== 'CONNECTED';
-  sendBtn.disabled = state !== 'CONNECTED';
-}
+    let state = 'IDLE';
+    let lastSystem = '';
+    let stopTypingTimeout = null;
 
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.innerText = str;
-  return div.innerHTML;
-}
+    function updateUI() {
+      startBtn.classList.toggle('hidden', state !== 'IDLE');
+      controls.classList.toggle('hidden', state === 'IDLE');
+      msgInput.disabled = state !== 'CONNECTED';
+      sendBtn.disabled = state !== 'CONNECTED';
+    }
 
-function system(text) {
-  if (text === lastSystem) return;
-  lastSystem = text;
-  const d = document.createElement('div');
-  d.className = 'system';
-  d.innerHTML = escapeHTML(text);
-  chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
-}
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.innerText = str;
+      return div.innerHTML;
+    }
 
-function addMsg(text, cls) {
-  const d = document.createElement('div');
-  d.className = 'message ' + cls;
-  d.innerHTML = escapeHTML(text);
-  chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
-}
+    function system(text) {
+      if (text === lastSystem) return;
+      lastSystem = text;
+      const d = document.createElement('div');
+      d.className = 'system';
+      d.innerHTML = escapeHTML(text);
+      chat.appendChild(d);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-startBtn.onclick = () => {
-  chat.innerHTML = '';
-  lastSystem = '';
-  state = 'SEARCHING';
-  status.innerText = 'Searching for a stranger...';
-  system('Searching for a stranger...');
-  updateUI();
-  socket.emit('start_search');
-};
+    function addMsg(text, cls) {
+      const d = document.createElement('div');
+      d.className = 'message ' + cls;
+      d.innerHTML = escapeHTML(text);
+      chat.appendChild(d);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-sendBtn.onclick = () => {
-  const text = msgInput.value.trim();
-  if (!text || state !== 'CONNECTED') return;
-  addMsg(text, 'you');
-  socket.emit('send_message', text);
-  msgInput.value = '';
-};
+    startBtn.onclick = () => {
+      chat.innerHTML = '';
+      lastSystem = '';
+      state = 'SEARCHING';
+      status.innerText = 'Searching for a stranger...';
+      system('Searching for a stranger...');
+      updateUI();
+      socket.emit('start_search');
+    };
 
-msgInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') sendBtn.click();
-});
+    sendBtn.onclick = () => {
+      const text = msgInput.value.trim();
+      if (!text || state !== 'CONNECTED') return;
+      addMsg(text, 'you');
+      socket.emit('send_message', text);
+      msgInput.value = '';
+    };
 
-// Typing indicator
-msgInput.addEventListener('input', () => {
-  if (state !== 'CONNECTED') return;
-  socket.emit('typing');
-  clearTimeout(stopTypingTimeout);
-  stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1500);
-});
+    msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
 
-socket.on('typing', () => typingDiv.classList.remove('hidden'));
-socket.on('stop_typing', () => typingDiv.classList.add('hidden'));
+    // Typing indicator
+    msgInput.addEventListener('input', () => {
+      if (state !== 'CONNECTED') return;
+      socket.emit('typing');
+      clearTimeout(stopTypingTimeout);
+      stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1500);
+    });
 
-endBtn.onclick = () => {
-  if (state === 'CONNECTED') socket.emit('end_chat');
-  else if (state === 'SEARCHING') socket.emit('cancel_search');
-};
+    socket.on('typing', () => typingDiv.classList.remove('hidden'));
+    socket.on('stop_typing', () => typingDiv.classList.add('hidden'));
 
-socket.on('searching', () => { state = 'SEARCHING'; status.innerText = 'Searching for a stranger...'; updateUI(); });
-socket.on('matched', () => { state = 'CONNECTED'; status.innerText = 'Connected'; system('You are now connected'); updateUI(); });
-socket.on('message', msg => addMsg(msg, 'stranger'));
-socket.on('partner_left', () => { chat.innerHTML = ''; state = 'IDLE'; status.innerText = 'Idle'; system('Stranger disconnected'); updateUI(); });
-socket.on('chat_ended', () => { chat.innerHTML = ''; state = 'IDLE'; status.innerText = 'Idle'; system('Chat ended'); updateUI(); });
-</script>
+    endBtn.onclick = () => {
+      if (state === 'CONNECTED') socket.emit('end_chat');
+      else if (state === 'SEARCHING') socket.emit('cancel_search');
+    };
+
+    socket.on('searching', () => {
+      state = 'SEARCHING';
+      status.innerText = 'Searching for a stranger...';
+      updateUI();
+    });
+
+    socket.on('matched', () => {
+      state = 'CONNECTED';
+      status.innerText = 'Connected';
+      system('You are now connected');
+      updateUI();
+    });
+
+    socket.on('message', msg => addMsg(msg, 'stranger'));
+
+    socket.on('partner_left', () => {
+      chat.innerHTML = '';
+      state = 'IDLE';
+      status.innerText = 'Idle';
+      system('Stranger disconnected');
+      updateUI();
+    });
+
+    socket.on('chat_ended', () => {
+      chat.innerHTML = '';
+      state = 'IDLE';
+      status.innerText = 'Idle';
+      system('Chat ended');
+      updateUI();
+    });
+  </script>
 </body>
 </html>

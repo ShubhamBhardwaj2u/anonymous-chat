@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Mobile-safe viewport (prevents iOS zoom) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
   <title>Anonymous Chat</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      -webkit-text-size-adjust: 100%;
+    }
 
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      height: 100vh;
+      height: 100dvh;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -66,8 +72,15 @@
       font-size: 0.95rem;
     }
 
-    .you { align-self: flex-end; background: #2563eb; }
-    .stranger { align-self: flex-start; background: #2a2a2a; }
+    .you {
+      align-self: flex-end;
+      background: #2563eb;
+    }
+
+    .stranger {
+      align-self: flex-start;
+      background: #2a2a2a;
+    }
 
     .system {
       align-self: center;
@@ -94,6 +107,7 @@
       border: none;
       background: #222;
       color: #fff;
+      font-size: 16px;
     }
 
     button {
@@ -104,12 +118,28 @@
       cursor: pointer;
     }
 
-    .send { background: #2563eb; color: #fff; }
-    .primary { background: #16a34a; color: #fff; margin: 12px; }
-    .danger { background: #dc2626; color: #fff; }
-    .hidden { display: none; }
+    .send {
+      background: #2563eb;
+      color: #fff;
+    }
 
-    button:disabled, input:disabled {
+    .primary {
+      background: #16a34a;
+      color: #fff;
+      margin: 12px;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button:disabled,
+    input:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -160,7 +190,7 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io(); // change URL if deployed
+    const socket = io();
 
     const chat = document.getElementById('chat');
     const status = document.getElementById('status');

@@ -19,6 +19,7 @@
       margin: 0;
       font-family: 'Inter', sans-serif;
       height: 100dvh;
+      min-height: 100vh; /* MOBILE UX tweak */
       display: flex;
       justify-content: center;
       align-items: center;
@@ -63,6 +64,7 @@
       flex-direction: column;
       gap: 10px;
       word-wrap: break-word;
+      padding-bottom: 80px; /* MOBILE UX tweak to prevent keyboard covering messages */
     }
 
     .message {
@@ -190,7 +192,7 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-        const socket = io();
+    const socket = io();
 
     const chat = document.getElementById('chat');
     const status = document.getElementById('status');
@@ -217,6 +219,7 @@
       d.innerText = text;
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
+      console.log('[SYSTEM]', text); // LOGGING
     }
 
     function addMsg(text, cls) {
@@ -225,6 +228,7 @@
       d.innerText = text;
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
+      //console.log(`[${cls.toUpperCase()}]`, text); // LOGGING
     }
 
     startBtn.onclick = () => {
@@ -234,6 +238,7 @@
       systemMsg('Searching for a stranger...');
       updateUI();
       socket.emit('start_search');
+      console.log('[INFO] User started search'); // LOGGING
     };
 
     sendBtn.onclick = () => {
@@ -277,7 +282,10 @@
     socket.on('partner_left', () => resetChat('Stranger disconnected'));
     socket.on('chat_ended', () => resetChat('Chat ended'));
 
-    endBtn.onclick = () => socket.emit('end_chat');
+    endBtn.onclick = () => {
+      socket.emit('end_chat');
+      console.log('[INFO] User ended chat'); // LOGGING
+    };
   </script>
 </body>
 </html>

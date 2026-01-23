@@ -167,12 +167,71 @@
       font-style: italic;
       pointer-events: none;
     }
+	
+	#infoBtn {
+	  position: absolute;
+	  right: 12px;
+	  top: 12px;
+	  background: #222;
+	  border: 2px solid #555; 
+	  border-radius: 30%;
+	  color: #fff;
+	  font-weight: 400;
+	  cursor: pointer;
+	  display: none;
+	  text-align: center;
+	  font-size: 25px;
+	  
+	  /* Bulging / elevated effect */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -2px 2px rgba(255,255,255,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+	}
+	
+	
+
+	#infoBtn:hover {
+	  transform: scale(1.1);                /* slightly bigger on hover */
+	  box-shadow: 0 6px 12px rgba(0,0,0,0.6), inset 0 -2px 2px rgba(255,255,255,0.2);
+	}
+
+
+	.modal-overlay {
+	  position: absolute;
+	  inset: 0;
+	  background: rgba(0,0,0,0.6);
+	  display: none;
+	  align-items: center;
+	  justify-content: center;
+	  z-index: 10;
+	}
+
+	.modal {
+	  background: #181818;
+	  border-radius: 14px;
+	  width: 90%;
+	  max-width: 360px;
+	  padding: 18px;
+	  text-align: center;
+	}
+
+	.modal-actions {
+	  margin-top: 16px;
+	  display: flex;
+	  flex-direction: column;
+	  gap: 10px;
+	}
+
   </style>
 </head>
 
 <body>
+	
+
   <div class="app">
-    <div class="header">Anonymous Chat</div>
+    <div class="header">
+	  Anonymous Chat
+	  <button id="infoBtn" ><span>&#9432;</span></button>
+	</div>
     <div id="status" class="status">Idle</div>
 
     <div id="chat" class="chat"></div>
@@ -188,11 +247,25 @@
       <button id="sendBtn" class="send" disabled>Send</button>
       <button id="endBtn" class="danger">End</button>
     </div>
+	
+	<div id="reportModal" class="modal-overlay">
+	  <div class="modal">
+		<h3>Safety Options</h3>
+		<p>
+		  This chat is anonymous. Do not share personal or financial information.
+		</p>
+
+		<div class="modal-actions">
+		  <button id="reportBtn" class="danger">Report User</button>
+		  <button id="closeModal" class="primary">Close</button>
+		</div>
+	  </div>
+	</div>
   </div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io();
+    const socket = io('http://localhost:3000');
 
     const chat = document.getElementById('chat');
     const status = document.getElementById('status');
@@ -202,25 +275,50 @@
     const msgInput = document.getElementById('msg');
     const controls = document.querySelector('.controls');
     const typingDiv = document.getElementById('typingIndicator');
+	const infoBtn = document.getElementById('infoBtn');
+	const modal = document.getElementById('reportModal');
+	const closeModal = document.getElementById('closeModal');
+	const reportBtn = document.getElementById('reportBtn');
+
+
 
     let state = 'IDLE';
     let stopTypingTimeout;
+    let isBlocked = false;
+    let blockNoticeEl = null;
+    let blockMessage = '';
 
     function updateUI() {
       startBtn.classList.toggle('hidden', state !== 'IDLE');
       controls.classList.toggle('hidden', state === 'IDLE');
       msgInput.disabled = state !== 'CONNECTED';
       sendBtn.disabled = state !== 'CONNECTED';
+	  infoBtn.style.display = state === 'CONNECTED' ? 'block' : 'none';
     }
+	
+   function resetChat(msg) {
+      typingDiv.classList.add('hidden');
+      state = 'IDLE';
+      status.innerText = 'Idle';
+      systemMsg(msg,true);
+      updateUI();
+    }
+	
+	function systemMsg(text, persist = false) {
+		if (persist && blockNoticeEl) {
+		  blockNoticeEl.innerText = text;
+		  return;
+		}
 
-    function systemMsg(text) {
-      const d = document.createElement('div');
-      d.className = 'system';
-      d.innerText = text;
-      chat.appendChild(d);
-      chat.scrollTop = chat.scrollHeight;
-      console.log('[SYSTEM]', text); // LOGGING
-    }
+		const d = document.createElement('div');
+		d.className = 'system';
+		d.innerText = text;
+		chat.appendChild(d);
+
+		if (persist) blockNoticeEl = d;
+
+		chat.scrollTop = chat.scrollHeight;
+	  }
 
     function addMsg(text, cls) {
       const d = document.createElement('div');
@@ -230,17 +328,23 @@
       chat.scrollTop = chat.scrollHeight;
       //console.log(`[${cls.toUpperCase()}]`, text); // LOGGING
     }
-
-    startBtn.onclick = () => {
-      chat.innerHTML = '';
-      state = 'SEARCHING';
-      status.innerText = 'Searching for a stranger...';
-      systemMsg('Searching for a stranger...');
-      updateUI();
-      socket.emit('start_search');
-      console.log('[INFO] User started search'); // LOGGING
-    };
-
+	
+	startBtn.onclick = () => {
+		if (isBlocked) {
+		  systemMsg(blockMessage, true);
+		  return;
+		}
+		blockNoticeEl = null;
+		chat.innerHTML = '';
+		state = 'SEARCHING';
+		status.innerText = 'Searching for a stranger...';
+		systemMsg('Searching for a stranger...', true);
+		updateUI();
+		socket.emit('start_search');
+		console.log('[INFO] User started search'); // LOGGING
+	  };
+	  
+	  
     sendBtn.onclick = () => {
       const text = msgInput.value.trim();
       if (!text) return;
@@ -265,27 +369,60 @@
     socket.on('matched', () => {
       state = 'CONNECTED';
       status.innerText = 'Connected';
-      systemMsg('You are now connected');
+      systemMsg('You are now connected', true);
       updateUI();
     });
 
     socket.on('message', msg => addMsg(msg, 'stranger'));
+	
+	socket.on('partner_left', () => resetChat('Stranger disconnected'));
+    
+	socket.on('chat_ended', () => {
+		state = 'IDLE';
+		status.innerText = isBlocked ? 'Blocked' : 'Idle';
 
-    function resetChat(msg) {
-      typingDiv.classList.add('hidden');
-      state = 'IDLE';
-      status.innerText = 'Idle';
-      systemMsg(msg);
-      updateUI();
-    }
+		if (isBlocked) {
+		  systemMsg(blockMessage, true);
+		} else {
+		  systemMsg('Chat ended', true);
+		}
 
-    socket.on('partner_left', () => resetChat('Stranger disconnected'));
-    socket.on('chat_ended', () => resetChat('Chat ended'));
-
+		updateUI();
+	  });
+	
+	socket.on('system_notice', msg => {
+		isBlocked = true;
+		blockMessage = msg;
+		state = 'IDLE';
+		status.innerText = 'Blocked';
+		systemMsg(msg, true);
+		updateUI();
+	  });
+	
     endBtn.onclick = () => {
       socket.emit('end_chat');
       console.log('[INFO] User ended chat'); // LOGGING
     };
+		
+	infoBtn.onclick = () => {
+	  modal.style.display = 'flex';
+	};
+
+	closeModal.onclick = () => {
+	  modal.style.display = 'none';
+	};
+	
+	reportBtn.onclick = () => {
+		modal.style.display = 'none'; 		// close modal
+		socket.emit('report_user');			// tell server
+		state = 'IDLE';
+		status.innerText = 'Idle';
+		systemMsg('You reported the user. Chat ended.', true);
+		updateUI();
+	  };
+	
+
+
   </script>
 </body>
 </html>

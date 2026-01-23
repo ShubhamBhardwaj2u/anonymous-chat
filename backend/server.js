@@ -21,34 +21,107 @@ const lastMessageTime = new Map();
 const userTimers = new Map();
 const typingTimers = new Map();
 
-// --- IDLE TIMEOUT ---
-const USER_TIMEOUT = 2 * 60 * 1000;
+// --- SAFETY STATE (PHASE 2) ---
+const ipReportCounters = new Map(); // ip -> { count, resetAt }
+const ipCooldowns = new Map();      // ip -> cooldownUntil
 
-function resetUserTimer(id) {
-  if (userTimers.has(id)) {
-    clearTimeout(userTimers.get(id));
+// --- LIMITS ---
+//const USER_TIMEOUT = 2 * 60 * 1000;
+const USER_TIMEOUT = 10 * 1000;
+const REPORT_LIMIT = 3;
+const REPORT_WINDOW = 60 * 60 * 1000;
+const COOLDOWN_TIME = 60 * 1000;
+
+	function resetUserTimer(id) {
+	  if (userTimers.has(id)) {
+		clearTimeout(userTimers.get(id));
+	  }
+
+	  userTimers.set(
+		id,
+		setTimeout(() => {
+		  const user = users.get(id);
+		  if (user) user.state = 'IDLE';
+		  endSession(id, 'chat_ended');
+		  console.log('Idle timeout reached for:', id);
+		}, USER_TIMEOUT)
+	  );
+	}
+
+
+	// --- CHECKING IP STATUS ---
+	function isInCooldown(ip) {
+	  const until = ipCooldowns.get(ip);
+	  return until && until > Date.now();
+	}
+	
+	// --- BLOCKING IP ---
+	function applyCooldown(ip) {
+	  ipCooldowns.set(ip, Date.now() + COOLDOWN_TIME);
+	}
+
+  // --- HELPERS ---
+  function endSession(id, event) {
+    const partnerId = activeChats.get(id);
+
+    if (partnerId) {
+      io.to(partnerId).emit(event);
+
+      const partner = users.get(partnerId);
+      if (partner) partner.state = 'IDLE';
+
+      activeChats.delete(partnerId);
+    }
+
+    io.to(id).emit(event);
+
+    const user = users.get(id);
+    if (user) user.state = 'IDLE';
+
+    activeChats.delete(id);
+    removeFromQueue(id);
+
+    if (userTimers.has(id)) {
+      clearTimeout(userTimers.get(id));
+      userTimers.delete(id);
+    }
   }
 
-  userTimers.set(
-    id,
-    setTimeout(() => {
-      const user = users.get(id);
-      if (user) user.state = 'IDLE';
-
-      endSession(id, 'chat_ended');
-      console.log('Idle timeout reached for:', id);
-    }, USER_TIMEOUT)
-  );
-}
+  function removeFromQueue(id) {
+    const index = waitingQueue.indexOf(id);
+    if (index !== -1) {
+      waitingQueue.splice(index, 1);
+    }
+  }
 
 // --- SOCKET.IO CONNECTION ---
 io.on('connection', socket => {
+	const ip =
+    socket.handshake.headers['x-forwarded-for']?.split(',')[0] ||
+    socket.handshake.address;
+	
   console.log('User connected:', socket.id);
-  users.set(socket.id, { state: 'IDLE' });
+  users.set(socket.id, { state: 'IDLE', ip });
 
+  // ✅ ADDITION: notify blocked user immediately (no disconnect)
+  if (isInCooldown(ip)) {
+    socket.emit(
+      'system_notice',
+      'You have been reported. Please wait before starting a new chat.'
+    );
+  }
+  
   // --- START SEARCH ---
   socket.on('start_search', () => {
-    const user = users.get(socket.id);
+    if (isInCooldown(ip)) {
+      socket.emit(
+        'system_notice',
+        'You have been reported. Please wait before starting a new chat.'
+      );
+      return;
+    }    
+	
+	const user = users.get(socket.id);
     if (!user || user.state !== 'IDLE') return;
 
     user.state = 'SEARCHING';
@@ -93,6 +166,52 @@ io.on('connection', socket => {
     socket.emit('chat_ended');
     console.log('User canceled search:', socket.id);
   });
+  
+  // --- REPORT USER ---
+  socket.on('report_user', () => {
+	  const user = users.get(socket.id);
+
+// ------------------------------------------------ restrict reporting user --------------------------------------------    
+	if (!user) return;
+
+    const now = Date.now();
+    const entry = ipReportCounters.get(ip) || {
+      count: 0,
+      resetAt: now + REPORT_WINDOW
+    };
+
+    if (now > entry.resetAt) {
+      entry.count = 0;
+      entry.resetAt = now + REPORT_WINDOW;
+    }
+
+    if (entry.count >= REPORT_LIMIT) {
+      return;
+    }
+
+    entry.count += 1;
+    ipReportCounters.set(ip, entry);
+// -----------------------------------------------------------------------------------------------------    
+	
+	
+	  const partnerId = activeChats.get(socket.id);
+	  if (partnerId) {
+		  const partner = users.get(partnerId);
+		  if (partner && partner.ip) {
+			applyCooldown(partner.ip);
+			io.to(partnerId).emit(
+			  'system_notice',
+			  'You have been reported. Please wait before starting a new chat.'
+			);
+		  }
+		}
+		
+	  // End chat for both users
+	  endSession(socket.id, 'chat_ended');
+
+	  console.log('User reported:', partnerId, 'by', socket.id);
+	});
+
 
   // --- END CHAT ---
   socket.on('end_chat', () => {
@@ -170,39 +289,6 @@ io.on('connection', socket => {
     console.log('User disconnected:', socket.id);
   });
 
-  // --- HELPERS ---
-  function endSession(id, event) {
-    const partnerId = activeChats.get(id);
-
-    if (partnerId) {
-      io.to(partnerId).emit(event);
-
-      const partner = users.get(partnerId);
-      if (partner) partner.state = 'IDLE';
-
-      activeChats.delete(partnerId);
-    }
-
-    io.to(id).emit(event);
-
-    const user = users.get(id);
-    if (user) user.state = 'IDLE';
-
-    activeChats.delete(id);
-    removeFromQueue(id);
-
-    if (userTimers.has(id)) {
-      clearTimeout(userTimers.get(id));
-      userTimers.delete(id);
-    }
-  }
-
-  function removeFromQueue(id) {
-    const index = waitingQueue.indexOf(id);
-    if (index !== -1) {
-      waitingQueue.splice(index, 1);
-    }
-  }
 });
 
 // --- START SERVER ---

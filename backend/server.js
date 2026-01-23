@@ -7,10 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// Serve frontend folder (index.html + any static files)
+// Serve frontend folder (index.html + static files)
 app.use(express.static(path.join(__dirname, '../frontend')));
-
-// Serve index.html at root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
@@ -22,8 +20,8 @@ const users = new Map();          // socketId -> { state: 'IDLE'|'SEARCHING'|'CO
 const lastMessageTime = new Map();
 const userTimers = new Map();
 const typingTimers = new Map();
+const disconnectedUsers = new Map(); // oldSocketId -> { state, partnerId, timer }
 
-// --- IDLE TIMEOUT ---
 const USER_TIMEOUT = 2 * 60 * 1000;
 
 function resetUserTimer(id) {
@@ -36,10 +34,30 @@ function resetUserTimer(id) {
   }, USER_TIMEOUT));
 }
 
-// --- SOCKET.IO CONNECTION ---
 io.on('connection', socket => {
   console.log('User connected:', socket.id);
   users.set(socket.id, { state: 'IDLE' });
+
+  // --- RECONNECT HANDLING ---
+  socket.on('reconnect_attempt', oldId => {
+    if (disconnectedUsers.has(oldId)) {
+      const data = disconnectedUsers.get(oldId);
+      clearTimeout(data.timer);
+
+      users.set(socket.id, { state: data.state });
+
+      if (data.partnerId) {
+        activeChats.set(socket.id, data.partnerId);
+        activeChats.set(data.partnerId, socket.id);
+      }
+
+      disconnectedUsers.delete(oldId);
+      socket.emit('matched');
+      if (data.partnerId) io.to(data.partnerId).emit('matched');
+
+      console.log(`User ${oldId} reconnected as ${socket.id}`);
+    }
+  });
 
   // --- START SEARCH ---
   socket.on('start_search', () => {
@@ -50,7 +68,6 @@ io.on('connection', socket => {
     socket.emit('searching');
     resetUserTimer(socket.id);
 
-    // Try to match with waiting user
     const partnerId = waitingQueue.find(id => id !== socket.id && users.has(id));
     if (partnerId) {
       waitingQueue.splice(waitingQueue.indexOf(partnerId), 1);
@@ -61,7 +78,6 @@ io.on('connection', socket => {
       socket.emit('matched');
       io.to(partnerId).emit('matched');
 
-      // Stop idle timers for matched users
       if (userTimers.has(socket.id)) clearTimeout(userTimers.get(socket.id));
       if (userTimers.has(partnerId)) clearTimeout(userTimers.get(partnerId));
 
@@ -89,7 +105,6 @@ io.on('connection', socket => {
     const text = msg?.trim();
     if (!text || text.length > 500) return;
 
-    // Rate limit: 2 messages/sec
     const now = Date.now();
     const last = lastMessageTime.get(socket.id) || 0;
     if (now - last < 500) return;
@@ -124,16 +139,26 @@ io.on('connection', socket => {
 
   // --- DISCONNECT ---
   socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+
+    const user = users.get(socket.id);
+    if (user) {
+      const partnerId = activeChats.get(socket.id);
+      const timer = setTimeout(() => {
+        disconnectedUsers.delete(socket.id);
+        endSession(socket.id, 'partner_left');
+      }, 2 * 60 * 1000); // 2 minutes
+
+      disconnectedUsers.set(socket.id, { state: user.state, partnerId, timer });
+    }
+
     if (typingTimers.has(socket.id)) clearTimeout(typingTimers.get(socket.id));
     typingTimers.delete(socket.id);
-
-    endSession(socket.id, 'partner_left');
+    activeChats.delete(socket.id);
     removeFromQueue(socket.id);
     lastMessageTime.delete(socket.id);
     users.delete(socket.id);
     if (userTimers.has(socket.id)) clearTimeout(userTimers.get(socket.id));
-
-    console.log('User disconnected:', socket.id);
   });
 
   // --- HELPERS ---

@@ -204,6 +204,15 @@
     let state = 'IDLE';
     let stopTypingTimeout;
 
+	// Reconnect handling
+	socket.on('connect', () => {
+	  const oldId = localStorage.getItem('socketId');
+	  if (oldId && oldId !== socket.id) {
+		socket.emit('reconnect_attempt', oldId);
+	  }
+	  localStorage.setItem('socketId', socket.id);
+	});
+
     function updateUI() {
       startBtn.classList.toggle('hidden', state !== 'IDLE');
       controls.classList.toggle('hidden', state === 'IDLE');

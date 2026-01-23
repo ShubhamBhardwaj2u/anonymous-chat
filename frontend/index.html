@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Anonymous Chat</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -34,8 +33,6 @@
       overflow: hidden;
     }
 
-
-    /* Header and status */
     .header {
       padding: 16px;
       text-align: center;
@@ -52,7 +49,6 @@
       color: #aaa;
     }
 
-    /* Chat container */
     .chat {
       flex: 1;
       padding: 12px;
@@ -60,28 +56,18 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-bottom: 60px;
       word-wrap: break-word;
     }
 
-    /* Messages */
     .message {
       max-width: 75%;
       padding: 10px 12px;
       border-radius: 12px;
       font-size: 0.95rem;
-      word-wrap: break-word;
     }
 
-    .you {
-      align-self: flex-end;
-      background: #2563eb;
-    }
-
-    .stranger {
-      align-self: flex-start;
-      background: #2a2a2a;
-    }
+    .you { align-self: flex-end; background: #2563eb; }
+    .stranger { align-self: flex-start; background: #2a2a2a; }
 
     .system {
       align-self: center;
@@ -89,8 +75,11 @@
       color: #888;
     }
 
-    /* Controls */
     .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       padding: 10px;
       display: flex;
       gap: 8px;
@@ -105,7 +94,6 @@
       border: none;
       background: #222;
       color: #fff;
-      font-size: 0.95rem;
     }
 
     button {
@@ -114,36 +102,18 @@
       border: none;
       font-weight: 600;
       cursor: pointer;
-      font-size: 0.95rem;
     }
 
-    .send {
-      background: #2563eb;
-      color: #fff;
-    }
+    .send { background: #2563eb; color: #fff; }
+    .primary { background: #16a34a; color: #fff; margin: 12px; }
+    .danger { background: #dc2626; color: #fff; }
+    .hidden { display: none; }
 
-    .primary {
-      background: #16a34a;
-      color: #fff;
-      margin: 12px;
-    }
-
-    .danger {
-      background: #dc2626;
-      color: #fff;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    button:disabled,
-    input:disabled {
+    button:disabled, input:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    /* Typing indicator */
     @keyframes typingDots {
       0% { content: '.'; }
       33% { content: '..'; }
@@ -158,36 +128,31 @@
 
     #typingIndicator {
       position: absolute;
-      bottom: 70px; /* above input */
+      bottom: 70px;
       left: 16px;
-      font-size: 1rem;
+      font-size: 0.9rem;
       color: #aaa;
       font-style: italic;
-      height: 20px;
       pointer-events: none;
-    }
-
-    /* Mobile adjustments */
-    @media (max-width: 480px) {
-      .app { height: 95vh; border-radius: 12px; }
-      .header { font-size: 1rem; padding: 12px; }
-      .status { font-size: 0.8rem; }
-      .message { font-size: 0.9rem; padding: 8px 10px; }
-      .controls { padding: 8px; gap: 6px; }
-      input, button { font-size: 0.9rem; padding: 8px 10px; }
-      #typingIndicator { font-size: 0.9rem; bottom: 65px; }
     }
   </style>
 </head>
+
 <body>
   <div class="app">
     <div class="header">Anonymous Chat</div>
     <div id="status" class="status">Idle</div>
+
     <div id="chat" class="chat"></div>
-    <div id="typingIndicator" class="system typing-indicator hidden"></div>
+
+    <div id="typingIndicator" class="system typing-indicator hidden">
+      Stranger is typing
+    </div>
+
     <button id="startBtn" class="primary">Start Chat</button>
+
     <div class="controls hidden">
-      <input id="msg" placeholder="Type a message..." disabled autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input id="msg" placeholder="Type a message..." disabled autocomplete="off" />
       <button id="sendBtn" class="send" disabled>Send</button>
       <button id="endBtn" class="danger">End</button>
     </div>
@@ -195,7 +160,7 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io();
+    const socket = io(); // change URL if deployed
 
     const chat = document.getElementById('chat');
     const status = document.getElementById('status');
@@ -207,8 +172,7 @@
     const typingDiv = document.getElementById('typingIndicator');
 
     let state = 'IDLE';
-    let lastSystem = '';
-    let stopTypingTimeout = null;
+    let stopTypingTimeout;
 
     function updateUI() {
       startBtn.classList.toggle('hidden', state !== 'IDLE');
@@ -217,18 +181,10 @@
       sendBtn.disabled = state !== 'CONNECTED';
     }
 
-    function escapeHTML(str) {
-      const div = document.createElement('div');
-      div.innerText = str;
-      return div.innerHTML;
-    }
-
-    function system(text) {
-      if (text === lastSystem) return;
-      lastSystem = text;
+    function systemMsg(text) {
       const d = document.createElement('div');
       d.className = 'system';
-      d.innerHTML = escapeHTML(text);
+      d.innerText = text;
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
     }
@@ -236,24 +192,23 @@
     function addMsg(text, cls) {
       const d = document.createElement('div');
       d.className = 'message ' + cls;
-      d.innerHTML = escapeHTML(text);
+      d.innerText = text;
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
     }
 
     startBtn.onclick = () => {
       chat.innerHTML = '';
-      lastSystem = '';
       state = 'SEARCHING';
       status.innerText = 'Searching for a stranger...';
-      system('Searching for a stranger...');
+      systemMsg('Searching for a stranger...');
       updateUI();
       socket.emit('start_search');
     };
 
     sendBtn.onclick = () => {
       const text = msgInput.value.trim();
-      if (!text || state !== 'CONNECTED') return;
+      if (!text) return;
       addMsg(text, 'you');
       socket.emit('send_message', text);
       msgInput.value = '';
@@ -263,52 +218,36 @@
       if (e.key === 'Enter') sendBtn.click();
     });
 
-    // Typing indicator
     msgInput.addEventListener('input', () => {
-      if (state !== 'CONNECTED') return;
       socket.emit('typing');
       clearTimeout(stopTypingTimeout);
-      stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1500);
+      stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1200);
     });
 
     socket.on('typing', () => typingDiv.classList.remove('hidden'));
     socket.on('stop_typing', () => typingDiv.classList.add('hidden'));
 
-    endBtn.onclick = () => {
-      if (state === 'CONNECTED') socket.emit('end_chat');
-      else if (state === 'SEARCHING') socket.emit('cancel_search');
-    };
-
-    socket.on('searching', () => {
-      state = 'SEARCHING';
-      status.innerText = 'Searching for a stranger...';
-      updateUI();
-    });
-
     socket.on('matched', () => {
       state = 'CONNECTED';
       status.innerText = 'Connected';
-      system('You are now connected');
+      systemMsg('You are now connected');
       updateUI();
     });
 
     socket.on('message', msg => addMsg(msg, 'stranger'));
 
-    socket.on('partner_left', () => {
-      chat.innerHTML = '';
+    function resetChat(msg) {
+      typingDiv.classList.add('hidden');
       state = 'IDLE';
       status.innerText = 'Idle';
-      system('Stranger disconnected');
+      systemMsg(msg);
       updateUI();
-    });
+    }
 
-    socket.on('chat_ended', () => {
-      chat.innerHTML = '';
-      state = 'IDLE';
-      status.innerText = 'Idle';
-      system('Chat ended');
-      updateUI();
-    });
+    socket.on('partner_left', () => resetChat('Stranger disconnected'));
+    socket.on('chat_ended', () => resetChat('Chat ended'));
+
+    endBtn.onclick = () => socket.emit('end_chat');
   </script>
 </body>
 </html>

@@ -190,7 +190,7 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io();
+        const socket = io();
 
     const chat = document.getElementById('chat');
     const status = document.getElementById('status');
@@ -203,15 +203,6 @@
 
     let state = 'IDLE';
     let stopTypingTimeout;
-
-	// Reconnect handling
-	socket.on('connect', () => {
-	  const oldId = localStorage.getItem('socketId');
-	  if (oldId && oldId !== socket.id) {
-		socket.emit('reconnect_attempt', oldId);
-	  }
-	  localStorage.setItem('socketId', socket.id);
-	});
 
     function updateUI() {
       startBtn.classList.toggle('hidden', state !== 'IDLE');

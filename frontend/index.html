@@ -366,6 +366,110 @@
       background: var(--primary);
     }
 
+	.guidelines {
+	  text-align: left;
+	  margin-bottom: 16px;
+	  max-height: 200px; /* Optional: Add scrolling if too long on small screens */
+	  overflow-y: auto;
+	}
+
+	.guidelines h4 {
+	  font-size: 15px;
+	  margin-bottom: 6px; /* small clean gap */
+	  color: var(--text-dark);
+	}
+
+	.guidelines ul {
+	  list-style-type: disc;
+	  padding-left: 20px;
+	  font-size: 14px;
+	  color: var(--text-muted);
+	}
+
+	.guidelines li {
+	  margin-bottom: 6px;
+	}
+
+	/* =========================
+	   MINIMAL SCROLLBAR – GUIDELINES
+	   ========================= */
+
+	/* Chrome, Edge, Safari */
+	.guidelines::-webkit-scrollbar {
+	  width: 4px;
+	}
+
+	.guidelines::-webkit-scrollbar-track {
+	  background: transparent;
+	}
+
+	.guidelines::-webkit-scrollbar-thumb {
+	  background-color: transparent;
+	  border-radius: 10px;
+	  transition: background-color 0.2s ease;
+	}
+
+	.guidelines:hover::-webkit-scrollbar-thumb {
+	  background-color: rgba(15, 23, 42, 0.25);
+	}
+
+	/* Firefox */
+	.guidelines {
+	  scrollbar-width: thin;
+	  scrollbar-color: transparent transparent;
+	}
+
+	.guidelines:hover {
+	  scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
+	}
+
+
+	/* =========================
+	   FEEDBACK MODAL
+	   ========================= */
+	.feedback-modal .modal {
+	  max-width: 400px;
+	}
+
+	.feedback-form {
+	  display: flex;
+	  flex-direction: column;
+	  gap: 12px;
+	}
+
+	.feedback-form textarea {
+	  padding: 10px;
+	  border-radius: var(--radius-small);
+	  border: 1px solid var(--text-muted);
+	  font-size: 14px;
+	  resize: vertical;
+	  min-height: 80px;
+	  -webkit-appearance: none;
+	  outline: none;
+	}
+
+	.feedback-form textarea:focus {
+	  border-color: var(--primary);
+	}
+
+	.feedback-form button {
+	  padding: 10px;
+	  border-radius: var(--radius-small);
+	  border: none;
+	  background: var(--primary);
+	  color: #fff;
+	  font-weight: 600;
+	  cursor: pointer;
+	  -webkit-appearance: none;
+	  touch-action: manipulation;
+	  min-height: 44px;
+	}
+
+	.feedback-form button:hover {
+	  background: var(--primary-dark);
+	}
+
+
     /* =========================
        UTILITIES
        ========================= */
@@ -462,13 +566,39 @@
 <div id="reportModal" class="modal-overlay">
   <div class="modal">
     <h3>Safety Options</h3>
-    <p>
-      This chat is anonymous. Do not share personal or financial information.
-    </p>
+    <!-- <p> This chat is anonymous. Do not share personal or financial information. </p> --!>
+    <div class="guidelines">
+      <h4>Guidelines for Safe Chatting:</h4>
+		<ul>
+		  <li><strong>Privacy & Anonymity:</strong> Keep chats anonymous. Never share personal details like names, addresses, phone numbers, emails, photos, or identifiable info.</li>
+		  <li><strong>Safety First:</strong> Avoid sharing financial details, links, or anything that could risk your security. Report suspicious users immediately.</li>
+		  <li><strong>Respect & Conduct:</strong> Be polite and kind. No harassment, bullying, hate speech, spam, or inappropriate content (e.g., explicit, violent, or illegal topics).</li>
+		  <li><strong>Age & Content Restrictions:</strong> This app is for users 18+. Do not engage in or share adult content, and avoid interacting with minors.</li>
+		  <li><strong>Usage Rules:</strong> Keep conversations appropriate and fun. Excessive trolling, flooding, or rule-breaking may result in temporary blocks.</li>
+		  <li><strong>Reporting & Feedback:</strong> Use "Report User" for issues. Your feedback helps us improve—share it via the feedback option.</li>
+		  <li><strong>Spread the Word:</strong> Enjoying the app? Share it with friends to help grow our community!</li>
+		</ul>
+    </div>
     <div class="modal-actions">
       <button id="reportBtn" class="danger">Report User</button>
+      <button id="feedbackBtn" class="primary">Give Feedback</button>
       <button id="closeModal" class="primary">Close</button>
     </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal" class="modal-overlay">
+  <div class="modal">
+    <h3>Share Your Feedback</h3>
+    <p>We'd love to hear your thoughts to improve the app!</p>
+    <form class="feedback-form" id="feedbackForm">
+      <textarea placeholder="Your feedback here..." required maxlength="500"></textarea>
+      <div class="modal-actions">
+        <button type="button" id="closeFeedbackModal" class="primary">Close</button>
+        <button type="submit" class="primary">Submit Feedback</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -492,6 +622,11 @@
   const helloBtn = document.getElementById('helloBtn');
   const emptyState = document.querySelector('.empty-state');
   const skipBtn = document.getElementById('skipBtn');
+  
+  const feedbackBtn = document.getElementById('feedbackBtn');
+  const feedbackModal = document.getElementById('feedbackModal');
+  const feedbackForm = document.getElementById('feedbackForm');
+  const closeFeedbackModal = document.getElementById('closeFeedbackModal');
 
   let state = 'IDLE';
   let stopTypingTimeout;
@@ -644,6 +779,26 @@
 	  //updateUI();
 	};
 
+	feedbackBtn.onclick = () => {
+	  modal.style.display = 'none';  // Close the safety modal
+	  feedbackModal.style.display = 'flex';  // Open feedback modal
+	};
+
+	feedbackForm.onsubmit = (e) => {
+	  e.preventDefault();
+	  const text = feedbackForm.querySelector('textarea').value.trim();
+	  if (text) {
+		socket.emit('submit_feedback', text);
+		feedbackForm.reset();
+		feedbackModal.style.display = 'none';
+		// Optional: Show a brief "Thank you" message (you can add a systemMsg if desired)
+	  }
+	};
+
+	closeFeedbackModal.onclick = () => {
+	  feedbackModal.style.display = 'none';
+	};
+
   msgInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendBtn.click();
   });
@@ -726,6 +881,14 @@
 	  }
 	});
 
+
+	socket.on('feedback_result', success => {
+	  if (success) {
+		systemMsg('Thank you for your feedback!');
+	  } else {
+		systemMsg('Feedback limit reached. Try again tomorrow.');
+	  }
+	});
 
 
   // Initial UI update

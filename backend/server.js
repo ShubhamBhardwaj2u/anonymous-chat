@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +12,16 @@ const io = new Server(server, { cors: { origin: '*' } });
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
+});
+
+// Temporary endpoint to view feedback logs (REMOVE AFTER TESTING FOR SECURITY)
+app.get('/logs', (req, res) => {
+  try {
+    const logs = fs.readFileSync('feedback.log', 'utf8');
+    res.type('text/plain').send(logs || 'No logs available.');
+  } catch (err) {
+    res.status(500).send('Error reading logs: ' + err.message);
+  }
 });
 
 // --- STATE ---
@@ -24,6 +35,7 @@ const typingTimers = new Map();
 // --- SAFETY STATE (PHASE 2) ---
 const ipReportCounters = new Map(); // ip -> { count, resetAt }
 const ipCooldowns = new Map();      // ip -> cooldownUntil
+const feedbackLimits = new Map();  // ip -> lastFeedbackDate (YYYY-MM-DD)
 
 // --- LIMITS ---
 //const USER_TIMEOUT = 2 * 60 * 1000;
@@ -34,6 +46,12 @@ const COOLDOWN_TIME = 5 * 60 * 1000;
 const REPORT_LIMIT = 3;
 const REPORT_WINDOW = 60 * 60 * 1000; // 1 hour
 
+const FEEDBACK_FILE = 'feedback.log';  // File to store feedback
+
+	// Helper to get today's date as string
+	function getToday() {
+	  return new Date().toISOString().split('T')[0];
+	}
 
 	function resetUserTimer(id) {
 	  if (userTimers.has(id)) {
@@ -201,6 +219,8 @@ socket.on('start_search', () => {
     socket.emit('chat_ended');
     console.log('User canceled search:', socket.id);
   });
+  
+  
   // --- REPORT USER ---
 socket.on('report_user', () => {
   console.log('[REPORT] Report event received from:', socket.id);
@@ -351,6 +371,28 @@ socket.on('report_user', () => {
 
     console.log('User disconnected:', socket.id);
   });
+  
+	// --- SUBMIT FEEDBACK ---
+	socket.on('submit_feedback', text => {
+	  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0] || socket.handshake.address;
+	  const today = getToday();
+	  const lastDate = feedbackLimits.get(ip);
+
+	  if (lastDate === today) {
+		socket.emit('feedback_result', false);  // Limit exceeded
+		return;
+	  }
+
+	  // Log feedback (anonymously, with IP for moderation if needed)
+	  const entry = `[${new Date().toISOString()}] IP: ${ip} - Feedback: ${text}\n`;
+	  fs.appendFile(FEEDBACK_FILE, entry, err => {
+		if (err) console.error('Error logging feedback:', err);
+	  });
+
+	  feedbackLimits.set(ip, today);
+	  socket.emit('feedback_result', true);  // Success
+	  console.log('Feedback submitted from IP:', ip);
+	});
 
 });
 

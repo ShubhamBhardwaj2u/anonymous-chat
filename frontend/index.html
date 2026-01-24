@@ -2,148 +2,213 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-
-  <!-- Mobile-safe viewport (prevents iOS zoom) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
   <title>Anonymous Chat</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* =========================
+       CSS RESET & VARIABLES
+       ========================= */
+    :root {
+      --bg-app: #ffffff;
+      --bg-page: #0f172a;
+      --primary: #06b6d4;
+      --primary-dark: #0891b2;
+      --accent: #0ea5e9;
+      --chat-bg: #e5faff;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --danger: #dc2626;
+      --radius: 14px;
+      --radius-small: 10px;
+    }
+
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
       -webkit-text-size-adjust: 100%;
     }
 
-    body {
-      margin: 0;
+    html, body {
+      height: 100%;
       font-family: 'Inter', sans-serif;
-      height: 100dvh;
-      min-height: 100vh; /* MOBILE UX tweak */
+    }
+
+    body {
       display: flex;
-      justify-content: center;
       align-items: center;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      justify-content: center;
+      background: var(--bg-page);
+      color: var(--text-dark);
+    }
+
+    /* =========================
+       APP CONTAINER
+       ========================= */
+    .app {
+      width: 100%;
+      max-width: 520px;
+      height: 100dvh;
+      background: var(--bg-app);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+
+    @media (min-width: 768px) {
+      .app {
+        height: 95vh;
+        max-height: 760px;
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+    }
+
+    /* =========================
+       HEADER
+       ========================= */
+    .top-bar {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
       color: #fff;
     }
 
-    .app {
-      position: relative;
-      width: 95%;
-      max-width: 520px;
-      height: 95%;
-      max-height: 75vh;
-      background: #111;
-      border-radius: 18px;
+    .user-text strong {
+      font-size: 14px;
+    }
+
+    .user-text span {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    #infoBtn {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 400;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: background 0.2s;
     }
 
-    .header {
-      padding: 16px;
-      text-align: center;
-      font-weight: 700;
-      background: #181818;
-      font-size: 1.2rem;
+    #infoBtn:hover {
+      background: rgba(255,255,255,0.3);
     }
 
-    .status {
-      padding: 8px;
-      font-size: 0.9rem;
-      text-align: center;
-      background: #141414;
-      color: #aaa;
-    }
-
+    /* =========================
+       CHAT AREA
+       ========================= */
     .chat {
       flex: 1;
-      padding: 12px;
+      background: var(--chat-bg);
+      padding: 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 10px;
       word-wrap: break-word;
-      padding-bottom: 80px; /* MOBILE UX tweak to prevent keyboard covering messages */
+      padding-bottom: 96px;
     }
 
+    .empty-state {
+      margin-top: 64px;
+      text-align: center;
+      font-size: 14px;
+      color: #0369a1;
+    }
+
+    .hello-btn {
+      margin-top: 12px;
+      padding: 8px 20px;
+      border-radius: 6px;
+      border: none;
+      background: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .hello-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* =========================
+       MESSAGES
+       ========================= */
     .message {
       max-width: 75%;
       padding: 10px 12px;
-      border-radius: 12px;
-      font-size: 0.95rem;
+      border-radius: var(--radius-small);
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+      margin-bottom: 8px;
     }
 
     .you {
       align-self: flex-end;
-      background: #2563eb;
+      background: var(--accent);
+      color: #fff;
     }
 
     .stranger {
       align-self: flex-start;
-      background: #2a2a2a;
+      background: #fff;
+      color: var(--text-dark);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
     .system {
       align-self: center;
-      font-size: 0.8rem;
-      color: #888;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 10px 0;
     }
 
-    .controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 10px;
-      display: flex;
-      gap: 8px;
-      background: #181818;
-      border-top: 1px solid #222;
+    /* =========================
+       TYPING INDICATOR
+       ========================= */
+    #typingIndicator {
+      align-self: flex-start;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 10px;
     }
 
-    input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-      background: #222;
-      color: #fff;
-      font-size: 16px;
-    }
 
-    button {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .send {
-      background: #2563eb;
-      color: #fff;
-    }
-
-    .primary {
-      background: #16a34a;
-      color: #fff;
-      margin: 12px;
-    }
-
-    .danger {
-      background: #dc2626;
-      color: #fff;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    button:disabled,
-    input:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .typing-indicator::after {
+      content: '.';
+      animation: typingDots 1s steps(3) infinite;
     }
 
     @keyframes typingDots {
@@ -153,276 +218,519 @@
       100% { content: '.'; }
     }
 
-    .typing-indicator::after {
-      content: '.';
-      animation: typingDots 1s steps(3) infinite;
+    /* =========================
+       FOOTER
+       ========================= */
+    .footer {
+      background: var(--primary);
+      padding: 8px;
     }
 
-    #typingIndicator {
-      position: absolute;
-      bottom: 70px;
-      left: 16px;
-      font-size: 0.9rem;
-      color: #aaa;
-      font-style: italic;
-      pointer-events: none;
+    .footer-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .footer-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    .new-chat {
+      background: var(--primary-dark);
+    }
+
+    .new-chat:hover {
+      background: #067a8f;
+    }
+
+    .end-chat {
+      background: #0e7490;
+    }
+
+    .end-chat:hover {
+      background: #0c5a6b;
+    }
+
+    .skip {
+      background: #0e7490;
+    }
+
+    .skip:hover {
+      background: #0c5a6b;
+    }
+
+    .input-bar {
+      display: flex;
+      gap: 6px;
+    }
+
+    .input-bar input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background: #fff;
+      color: var(--text-dark);
+    }
+
+    .input-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-bar button {
+      padding: 0 14px;
+      border-radius: 6px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+
+    .input-bar button:hover {
+      background: #0284c7;
+    }
+
+    button:disabled,
+    input:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* =========================
+       MODAL
+       ========================= */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .modal {
+      background: var(--bg-app);
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 360px;
+      padding: 18px;
+      text-align: center;
+      color: var(--text-dark);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal h3 {
+      margin-bottom: 12px;
+      color: var(--text-dark);
+    }
+
+    .modal p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-actions button {
+      padding: 10px;
+      border-radius: var(--radius-small);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    .modal-actions .danger {
+      background: var(--danger);
+    }
+
+    .modal-actions .primary {
+      background: var(--primary);
+    }
+
+    /* =========================
+       UTILITIES
+       ========================= */
+    .hidden {
+      display: none !important;
     }
 	
-	#infoBtn {
-	  position: absolute;
-	  right: 12px;
-	  top: 12px;
-	  background: #222;
-	  border: 2px solid #555; 
-	  border-radius: 30%;
-	  color: #fff;
-	  font-weight: 400;
-	  cursor: pointer;
-	  display: none;
-	  text-align: center;
-	  font-size: 25px;
-	  
-	  /* Bulging / elevated effect */
-      box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -2px 2px rgba(255,255,255,0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
-	}
 	
-	
+	/* =========================
+   MODERN MINIMAL SCROLLBAR
+   (Instagram / WhatsApp style)
+   ========================= */
 
-	#infoBtn:hover {
-	  transform: scale(1.1);                /* slightly bigger on hover */
-	  box-shadow: 0 6px 12px rgba(0,0,0,0.6), inset 0 -2px 2px rgba(255,255,255,0.2);
+	/* Chrome, Edge, Safari */
+	.chat::-webkit-scrollbar {
+	  width: 4px;
 	}
 
-
-	.modal-overlay {
-	  position: absolute;
-	  inset: 0;
-	  background: rgba(0,0,0,0.6);
-	  display: none;
-	  align-items: center;
-	  justify-content: center;
-	  z-index: 10;
+	.chat::-webkit-scrollbar-track {
+	  background: transparent;
 	}
 
-	.modal {
-	  background: #181818;
-	  border-radius: 14px;
-	  width: 90%;
-	  max-width: 360px;
-	  padding: 18px;
-	  text-align: center;
+	.chat::-webkit-scrollbar-thumb {
+	  background-color: transparent; /* hidden by default */
+	  border-radius: 10px;
+	  transition: background-color 0.2s ease;
 	}
 
-	.modal-actions {
-	  margin-top: 16px;
-	  display: flex;
-	  flex-direction: column;
-	  gap: 10px;
+	/* Show only on hover or scroll */
+	.chat:hover::-webkit-scrollbar-thumb {
+	  background-color: rgba(15, 23, 42, 0.25);
+	}
+
+	/* Firefox */
+	.chat {
+	  scrollbar-width: thin;
+	  scrollbar-color: transparent transparent;
+	}
+
+	.chat:hover {
+	  scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
 	}
 
   </style>
 </head>
 
 <body>
-	
 
-  <div class="app">
-    <div class="header">
-	  Anonymous Chat
-	  <button id="infoBtn" ><span>&#9432;</span></button>
-	</div>
-    <div id="status" class="status">Idle</div>
+<div class="app">
 
-    <div id="chat" class="chat"></div>
-
-    <div id="typingIndicator" class="system typing-indicator hidden">
-      Stranger is typing
+  <!-- HEADER -->
+  <div class="top-bar">
+    <div class="user-info">
+      <div class="avatar">A</div>
+      <div class="user-text">
+        <strong>Anonymous</strong><br>
+        <span id="statusText">Idle</span>
+      </div>
     </div>
-
-    <button id="startBtn" class="primary">Start Chat</button>
-
-    <div class="controls hidden">
-      <input id="msg" placeholder="Type a message..." disabled autocomplete="off" />
-      <button id="sendBtn" class="send" disabled>Send</button>
-      <button id="endBtn" class="danger">End</button>
-    </div>
-	
-	<div id="reportModal" class="modal-overlay">
-	  <div class="modal">
-		<h3>Safety Options</h3>
-		<p>
-		  This chat is anonymous. Do not share personal or financial information.
-		</p>
-
-		<div class="modal-actions">
-		  <button id="reportBtn" class="danger">Report User</button>
-		  <button id="closeModal" class="primary">Close</button>
-		</div>
-	  </div>
-	</div>
+    <button id="infoBtn" class="hidden">ℹ</button>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script>
-    const socket = io();
+  <!-- CHAT -->
+  <div id="chat" class="chat">
+    <div class="empty-state hidden">
+      Conversation with this user is empty. Say hello.
+      <br>
+      <button class="hello-btn" id="helloBtn">HELLO</button>
+    </div>
+  </div>
 
-    const chat = document.getElementById('chat');
-    const status = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
-    const sendBtn = document.getElementById('sendBtn');
-    const endBtn = document.getElementById('endBtn');
-    const msgInput = document.getElementById('msg');
-    const controls = document.querySelector('.controls');
-    const typingDiv = document.getElementById('typingIndicator');
-	const infoBtn = document.getElementById('infoBtn');
-	const modal = document.getElementById('reportModal');
-	const closeModal = document.getElementById('closeModal');
-	const reportBtn = document.getElementById('reportBtn');
+  <!-- TYPING INDICATOR -->
+  <div id="typingIndicator" class="typing-indicator hidden">
+    Stranger is typing
+  </div>
 
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-actions">
+      <button id="startBtn" class="new-chat">NEW CHAT</button>
+      <button id="endBtn" class="end-chat hidden">END CHAT (ESC)</button>
+      <button id="skipBtn" class="skip hidden">SKIP</button>
+    </div>
 
+    <div class="input-bar hidden">
+      <input id="msg" placeholder="Type a message..." disabled autocomplete="off" />
+      <button id="sendBtn" disabled>➤</button>
+    </div>
+  </div>
 
-    let state = 'IDLE';
-    let stopTypingTimeout;
-    let isBlocked = false;
-    let blockNoticeEl = null;
-    let blockMessage = '';
+</div>
 
-    function updateUI() {
-      startBtn.classList.toggle('hidden', state !== 'IDLE');
-      controls.classList.toggle('hidden', state === 'IDLE');
-      msgInput.disabled = state !== 'CONNECTED';
-      sendBtn.disabled = state !== 'CONNECTED';
-	  infoBtn.style.display = state === 'CONNECTED' ? 'block' : 'none';
+<!-- MODAL -->
+<div id="reportModal" class="modal-overlay">
+  <div class="modal">
+    <h3>Safety Options</h3>
+    <p>
+      This chat is anonymous. Do not share personal or financial information.
+    </p>
+    <div class="modal-actions">
+      <button id="reportBtn" class="danger">Report User</button>
+      <button id="closeModal" class="primary">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  const chat = document.getElementById('chat');
+  const statusText = document.getElementById('statusText');
+  const startBtn = document.getElementById('startBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const endBtn = document.getElementById('endBtn');
+  const msgInput = document.getElementById('msg');
+  const inputBar = document.querySelector('.input-bar');
+  const footerActions = document.querySelector('.footer-actions');
+  const typingDiv = document.getElementById('typingIndicator');
+  const infoBtn = document.getElementById('infoBtn');
+  const modal = document.getElementById('reportModal');
+  const closeModal = document.getElementById('closeModal');
+  const reportBtn = document.getElementById('reportBtn');
+  const helloBtn = document.getElementById('helloBtn');
+  const emptyState = document.querySelector('.empty-state');
+  const skipBtn = document.getElementById('skipBtn');
+
+  let state = 'IDLE';
+  let stopTypingTimeout;
+  let isBlocked = false;
+  let blockNoticeEl = null;
+  let blockMessage = '';
+
+  function updateUI() {
+    const isIdle = state === 'IDLE';
+    const isConnected = state === 'CONNECTED';
+
+    startBtn.classList.toggle('hidden', !isIdle);
+    endBtn.classList.toggle('hidden', isIdle);
+    skipBtn.classList.toggle('hidden', isIdle);
+    inputBar.classList.toggle('hidden', isIdle);
+    infoBtn.classList.toggle('hidden', !isConnected);
+
+    msgInput.disabled = !isConnected;
+    sendBtn.disabled = !isConnected;
+
+    statusText.innerText = isBlocked ? 'Blocked' : (state === 'SEARCHING' ? 'Searching...' : state.charAt(0).toUpperCase() + state.slice(1).toLowerCase());
+  }
+
+  function resetChat(msg) {
+    typingDiv.classList.add('hidden');
+    state = 'IDLE';
+    systemMsg(msg, true);
+    emptyState.classList.add('hidden');  // Hide empty-state on reset
+    updateUI();
+  }
+
+  function systemMsg(text, persist = false) {
+    if (persist && blockNoticeEl) {
+      blockNoticeEl.innerText = text;
+      return;
     }
-	
-   function resetChat(msg) {
-      typingDiv.classList.add('hidden');
-      state = 'IDLE';
-      status.innerText = 'Idle';
-      systemMsg(msg,true);
-      updateUI();
+
+    const d = document.createElement('div');
+    d.className = 'system';
+    d.innerText = text;
+    chat.appendChild(d);
+
+    if (persist) blockNoticeEl = d;
+
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addMsg(text, cls) {
+    // Hide empty state on first message
+    if (emptyState && !emptyState.classList.contains('hidden')) {
+      emptyState.classList.add('hidden');
     }
-	
-	function systemMsg(text, persist = false) {
-		if (persist && blockNoticeEl) {
-		  blockNoticeEl.innerText = text;
-		  return;
-		}
 
-		const d = document.createElement('div');
-		d.className = 'system';
-		d.innerText = text;
-		chat.appendChild(d);
+    const d = document.createElement('div');
+    d.className = 'message ' + cls;
+    d.innerText = text;
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+  }
 
-		if (persist) blockNoticeEl = d;
-
-		chat.scrollTop = chat.scrollHeight;
-	  }
-
-    function addMsg(text, cls) {
-      const d = document.createElement('div');
-      d.className = 'message ' + cls;
-      d.innerText = text;
-      chat.appendChild(d);
-      chat.scrollTop = chat.scrollHeight;
-      //console.log(`[${cls.toUpperCase()}]`, text); // LOGGING
+ startBtn.onclick = () => {
+  if (isBlocked) {
+    systemMsg(blockMessage, true);
+    return;
+  }
+  blockNoticeEl = null;
+  // Instead of chat.innerHTML = '', selectively remove children except empty-state
+  const children = Array.from(chat.children);
+  children.forEach(child => {
+    if (child !== emptyState) {
+      chat.removeChild(child);
     }
-	
-	startBtn.onclick = () => {
-		if (isBlocked) {
-		  systemMsg(blockMessage, true);
-		  return;
-		}
+  });
+  emptyState.classList.add('hidden');  // Ensure it's hidden initially for new chat
+  state = 'SEARCHING';
+  systemMsg('Searching for a stranger...', true);
+  updateUI();
+  socket.emit('start_search');
+};
+
+  helloBtn.onclick = () => {
+    if (state === 'CONNECTED') {
+      addMsg('HELLO', 'you');
+      socket.emit('send_message', 'HELLO');
+    }
+  };
+
+  sendBtn.onclick = () => {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    addMsg(text, 'you');
+    socket.emit('send_message', text);
+    msgInput.value = '';
+  };
+  
+  skipBtn.onclick = () => {
+	  if (state === 'CONNECTED') {
+		socket.emit('end_chat');
+		// Immediately start searching for a new stranger
 		blockNoticeEl = null;
-		chat.innerHTML = '';
+		// Instead of chat.innerHTML = '', selectively remove children except empty-state
+		const children = Array.from(chat.children);
+		children.forEach(child => {
+		  if (child !== emptyState) {
+			chat.removeChild(child);
+		  }
+		});
+		emptyState.classList.add('hidden');  // Ensure it's hidden during transition
 		state = 'SEARCHING';
-		status.innerText = 'Searching for a stranger...';
 		systemMsg('Searching for a stranger...', true);
 		updateUI();
 		socket.emit('start_search');
-		console.log('[INFO] User started search'); // LOGGING
-	  };
-	  
-	  
-    sendBtn.onclick = () => {
-      const text = msgInput.value.trim();
-      if (!text) return;
-      addMsg(text, 'you');
-      socket.emit('send_message', text);
-      msgInput.value = '';
-    };
+	  }
+	};
 
-    msgInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') sendBtn.click();
-    });
-
-    msgInput.addEventListener('input', () => {
-      socket.emit('typing');
-      clearTimeout(stopTypingTimeout);
-      stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1200);
-    });
-
-    socket.on('typing', () => typingDiv.classList.remove('hidden'));
-    socket.on('stop_typing', () => typingDiv.classList.add('hidden'));
-
-    socket.on('matched', () => {
-      state = 'CONNECTED';
-      status.innerText = 'Connected';
-      systemMsg('You are now connected', true);
-      updateUI();
-    });
-
-    socket.on('message', msg => addMsg(msg, 'stranger'));
-	
-	socket.on('partner_left', () => resetChat('Stranger disconnected'));
-    
-	socket.on('chat_ended', () => {
-		state = 'IDLE';
-		status.innerText = isBlocked ? 'Blocked' : 'Idle';
-
-		if (isBlocked) {
-		  systemMsg(blockMessage, true);
-		} else {
-		  systemMsg('Chat ended', true);
-		}
-
-		updateUI();
-	  });
-	
-	socket.on('system_notice', msg => {
-		isBlocked = true;
-		blockMessage = msg;
-		state = 'IDLE';
-		status.innerText = 'Blocked';
-		systemMsg(msg, true);
-		updateUI();
-	  });
-	
-    endBtn.onclick = () => {
+  endBtn.onclick = () => {
+    socket.emit('end_chat');
+  };
+/*
+  skipBtn.onclick = () => {
+    if (state === 'CONNECTED') {
       socket.emit('end_chat');
-      console.log('[INFO] User ended chat'); // LOGGING
-    };
-		
-	infoBtn.onclick = () => {
-	  modal.style.display = 'flex';
-	};
+      // Immediately start searching for a new stranger
+      blockNoticeEl = null;
+      chat.innerHTML = '';
+      emptyState.classList.add('hidden');  // Hide empty-state during transition
+      state = 'SEARCHING';
+      systemMsg('Searching for a stranger...', true);
+      updateUI();
+      socket.emit('start_search');
+    }
+  };
+*/
+  infoBtn.onclick = () => {
+    modal.style.display = 'flex';
+  };
 
-	closeModal.onclick = () => {
-	  modal.style.display = 'none';
-	};
-	
+  closeModal.onclick = () => {
+    modal.style.display = 'none';
+  };
+	  
 	reportBtn.onclick = () => {
-		modal.style.display = 'none'; 		// close modal
-		socket.emit('report_user');			// tell server
-		state = 'IDLE';
-		status.innerText = 'Idle';
-		systemMsg('You reported the user. Chat ended.', true);
-		updateUI();
-	  };
+	  modal.style.display = 'none'; 		// close modal
+	  socket.emit('report_user');			// tell server to report/block the other user
+	  //socket.emit('end_chat');			// NEW: Explicitly end the chat for the reporter
+	  //resetChat('Stranger disconnected')   // no reseting bcz reporter should see current pipeup logs Chat
+	  //state = 'IDLE';
+	  //statusText.innerText = 'Idle';
+	  //systemMsg('You reported the user!');
+	  //updateUI();
+	};
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+
+  msgInput.addEventListener('input', () => {
+    socket.emit('typing');
+    clearTimeout(stopTypingTimeout);
+    stopTypingTimeout = setTimeout(() => socket.emit('stop_typing'), 1200);
+  });
+
+  socket.on('typing', () => typingDiv.classList.remove('hidden'));
+  socket.on('stop_typing', () => typingDiv.classList.add('hidden'));
+
+  socket.on('matched', () => {
+    state = 'CONNECTED';
+    systemMsg('You are now connected', true);
+    // Show empty-state if no user messages
+    const userMessages = chat.querySelectorAll('.message');
+    if (userMessages.length === 0) {
+      emptyState.classList.remove('hidden');
+    }
+    updateUI();
+  });
+
+  socket.on('message', msg => addMsg(msg, 'stranger'));
+
+  socket.on('partner_left', () => {
+	  if (isBlocked) {
+		resetChat('You have been reported. Please wait before starting a new chat.');
+		return; // ⛔ do not overwrite block notice with 'Stranger disconnected'
+	  }else{
+		resetChat('Stranger disconnected');
+	  } 
+	  
+	});
+
+
+/*
+  socket.on('chat_ended', () => {
+    state = 'IDLE';
+    if (isBlocked) {
+      systemMsg(blockMessage, true);
+    } else {
+      //systemMsg('Chat ended', true);
+	  resetChat('Chat ended')
+    }
+    updateUI();
+  });
+  
+ */
+	socket.on('chat_ended', () => {
+	  state = 'IDLE';
+
+	  if (!isBlocked) {
+		resetChat('Chat ended');
+	  }
+
+	  updateUI();
+	});
+
+  
+  	socket.on('system_notice', msg => {
+	  console.log('[CLIENT] system_notice received:', msg);
+
+	  isBlocked = true;
+	  blockMessage = msg;
+	  state = 'IDLE';
+
+	  statusText.innerText = 'Blocked'; // ✅ FIX
+	  systemMsg(msg, true);
+	  updateUI();
+	});
 	
+	socket.on('report_feedback', result => {
+	  if(result){
+		resetChat('You reported the user!');
+	  }else{
+	    emptyState.classList.add('hidden');  // Hide empty-state on reset
+		systemMsg('Slow down! You have exhausted your report limit.');
+	  }
+	});
 
 
-  </script>
+
+  // Initial UI update
+  //updateUI();
+</script>
+
 </body>
 </html>

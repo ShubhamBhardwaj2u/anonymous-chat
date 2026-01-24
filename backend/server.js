@@ -27,10 +27,13 @@ const ipCooldowns = new Map();      // ip -> cooldownUntil
 
 // --- LIMITS ---
 //const USER_TIMEOUT = 2 * 60 * 1000;
-const USER_TIMEOUT = 10 * 1000;
+const USER_TIMEOUT = 2 * 60 * 1000;
+const COOLDOWN_TIME = 5 * 60 * 1000;
+
+// A person can report 3 times in an hour. If they want to report more, they need to wait for the hour to reset.
 const REPORT_LIMIT = 3;
-const REPORT_WINDOW = 60 * 60 * 1000;
-const COOLDOWN_TIME = 60 * 1000;
+const REPORT_WINDOW = 60 * 60 * 1000; // 1 hour
+
 
 	function resetUserTimer(id) {
 	  if (userTimers.has(id)) {
@@ -65,7 +68,7 @@ const COOLDOWN_TIME = 60 * 1000;
     const partnerId = activeChats.get(id);
 
     if (partnerId) {
-      io.to(partnerId).emit(event);
+      io.to(partnerId).emit('partner_left');
 
       const partner = users.get(partnerId);
       if (partner) partner.state = 'IDLE';
@@ -87,12 +90,21 @@ const COOLDOWN_TIME = 60 * 1000;
     }
   }
 
-  function removeFromQueue(id) {
-    const index = waitingQueue.indexOf(id);
-    if (index !== -1) {
-      waitingQueue.splice(index, 1);
-    }
-  }
+	function removeFromQueue(id) {
+	  //console.log(`Removing User from queue ${id}`);
+	  const index = waitingQueue.indexOf(id);
+	  //console.log(`[DEBUG] Checking queue for ${id}`);
+	  //console.log(`[DEBUG] Current waitingQueue: [${waitingQueue.join(', ')}]`);
+	  //console.log(`[DEBUG] Index of ${id}: ${index}`);
+	  if (index !== -1) {
+		//console.log(`[DEBUG] Removing from queue: ${id}`);
+		waitingQueue.splice(index, 1);
+		console.log(`Removed from queue ${id}`);
+		//console.log(`[DEBUG] Updated waitingQueue: [${waitingQueue.join(', ')}]`);
+	  } else {
+		//console.log(`[DEBUG] ${id} not in queue - no removal needed (expected for active users)`);
+	  }
+	}
 
 // --- SOCKET.IO CONNECTION ---
 io.on('connection', socket => {
@@ -111,50 +123,73 @@ io.on('connection', socket => {
     );
   }
   
-  // --- START SEARCH ---
-  socket.on('start_search', () => {
-    if (isInCooldown(ip)) {
-      socket.emit(
-        'system_notice',
-        'You have been reported. Please wait before starting a new chat.'
-      );
-      return;
-    }    
-	
-	const user = users.get(socket.id);
-    if (!user || user.state !== 'IDLE') return;
-
-    user.state = 'SEARCHING';
-    socket.emit('searching');
-    resetUserTimer(socket.id);
-
-    console.log('User started search:', socket.id);
-
-    const partnerId = waitingQueue.find(
-      id => id !== socket.id && users.has(id)
+ // --- START SEARCH ---
+socket.on('start_search', () => {
+  // 1. Cooldown / report check
+  if (isInCooldown(ip)) {
+    socket.emit(
+      'system_notice',
+      'You have been reported. Please wait before starting a new chat.'
     );
+    return;
+  }
 
-    if (partnerId) {
-      waitingQueue.splice(waitingQueue.indexOf(partnerId), 1);
+  // 2. Validate user
+  const user = users.get(socket.id);
+  if (!user || user.state !== 'IDLE') {
+    console.log('Invalid start_search from:', socket.id);
+    return;
+  }
 
-      activeChats.set(socket.id, partnerId);
-      activeChats.set(partnerId, socket.id);
+  // 3. Mark user as searching
+  user.state = 'SEARCHING';
+  socket.emit('searching');
+  resetUserTimer(socket.id);
 
-      users.get(socket.id).state = 'CONNECTED';
-      users.get(partnerId).state = 'CONNECTED';
+  console.log('User started search:', socket.id);
+  //console.log('[DEBUG] Queue before:', waitingQueue);
 
-      socket.emit('matched');
-      io.to(partnerId).emit('matched');
-
-      if (userTimers.has(socket.id)) clearTimeout(userTimers.get(socket.id));
-      if (userTimers.has(partnerId)) clearTimeout(userTimers.get(partnerId));
-
-      console.log(`Matched ${socket.id} with ${partnerId}`);
-    } else {
-      waitingQueue.push(socket.id);
-      console.log(`Added to queue: ${socket.id}`);
-    }
+  // 4. Find a valid partner from queue
+  const partnerId = waitingQueue.find(id => {
+    const partner = users.get(id);
+    return partner && partner.state === 'SEARCHING' && id !== socket.id;
   });
+
+  // 5. If partner found → match
+  if (partnerId) {
+    // Remove partner from queue
+    waitingQueue.splice(waitingQueue.indexOf(partnerId), 1);
+
+    // Map active chat
+    activeChats.set(socket.id, partnerId);
+    activeChats.set(partnerId, socket.id);
+
+    // Update states
+    users.get(socket.id).state = 'CONNECTED';
+    users.get(partnerId).state = 'CONNECTED';
+
+    // Notify both users
+    socket.emit('matched');
+    io.to(partnerId).emit('matched');
+
+    // Clear timers
+    if (userTimers.has(socket.id)) clearTimeout(userTimers.get(socket.id));
+    if (userTimers.has(partnerId)) clearTimeout(userTimers.get(partnerId));
+
+    console.log(`Matched ${socket.id} with ${partnerId}`);
+    //console.log('[DEBUG] Queue after match:', waitingQueue);
+  }
+  // 6. If no partner → add to queue
+  else {
+    waitingQueue.push(socket.id);
+    const index = waitingQueue.indexOf(socket.id);
+
+    console.log(`Added to queue: ${socket.id}`);
+    //console.log('[DEBUG] Queue position:', index);
+    //console.log('[DEBUG] Queue after enqueue:', waitingQueue);
+  }
+});
+
 
   // --- CANCEL SEARCH ---
   socket.on('cancel_search', () => {
@@ -166,51 +201,79 @@ io.on('connection', socket => {
     socket.emit('chat_ended');
     console.log('User canceled search:', socket.id);
   });
-  
   // --- REPORT USER ---
-  socket.on('report_user', () => {
-	  const user = users.get(socket.id);
+socket.on('report_user', () => {
+  console.log('[REPORT] Report event received from:', socket.id);
 
-// ------------------------------------------------ restrict reporting user --------------------------------------------    
-	if (!user) return;
+  // Fetch reporting user
+  const user = users.get(socket.id);
+  if (!user) {
+    console.log('[REPORT] User not found for socket:', socket.id);
+    return;
+  }
 
-    const now = Date.now();
-    const entry = ipReportCounters.get(ip) || {
-      count: 0,
-      resetAt: now + REPORT_WINDOW
-    };
+  // -------------------- REPORT ABUSE PROTECTION (IP BASED) --------------------
+  const now = Date.now();
 
-    if (now > entry.resetAt) {
-      entry.count = 0;
-      entry.resetAt = now + REPORT_WINDOW;
+  const entry = ipReportCounters.get(ip) || {
+    count: 0,
+    resetAt: now + REPORT_WINDOW
+  };
+
+  // Reset counter if time window expired
+  if (now > entry.resetAt) {
+    console.log('[REPORT] Report window reset for IP:', ip);
+    entry.count = 0;
+    entry.resetAt = now + REPORT_WINDOW;
+  }
+
+  // Block report if limit exceeded - NEW: Emit feedback to reporter and stop
+  if (entry.count >= REPORT_LIMIT) {
+    console.log('[REPORT] Report limit exceeded for IP:', ip);
+    socket.emit('report_feedback', false);
+    return;  // Do nothing else - no reporting, no chat ending
+  }
+
+  // Increment report count (only if not exceeded)
+  entry.count += 1;
+  ipReportCounters.set(ip, entry);
+
+  console.log('[REPORT] Report count for IP:', ip, '=>', entry.count);
+  // ---------------------------------------------------------------------------
+
+  // Get active chat partner
+  const partnerId = activeChats.get(socket.id);
+  console.log('[REPORT] Partner socket ID:', partnerId);
+
+  if (partnerId) {
+    const partner = users.get(partnerId);
+
+    if (partner && partner.ip) {
+      console.log('[REPORT] Applying cooldown to IP:', partner.ip);
+
+      // Apply cooldown to reported user
+      applyCooldown(partner.ip);
+
+      // Notify reported user
+      io.to(partnerId).emit(
+        'system_notice',
+        'You have been reported. Please wait before starting a new chat.'
+      );
+
+      console.log('[REPORT] System notice sent to:', partnerId);
+    } else {
+      console.log('[REPORT] Partner user or IP not found:', partnerId);
     }
+  } else {
+    console.log('[REPORT] No active chat found for reporter:', socket.id);
+  }
 
-    if (entry.count >= REPORT_LIMIT) {
-      return;
-    }
-
-    entry.count += 1;
-    ipReportCounters.set(ip, entry);
-// -----------------------------------------------------------------------------------------------------    
-	
-	
-	  const partnerId = activeChats.get(socket.id);
-	  if (partnerId) {
-		  const partner = users.get(partnerId);
-		  if (partner && partner.ip) {
-			applyCooldown(partner.ip);
-			io.to(partnerId).emit(
-			  'system_notice',
-			  'You have been reported. Please wait before starting a new chat.'
-			);
-		  }
-		}
-		
-	  // End chat for both users
-	  endSession(socket.id, 'chat_ended');
-
-	  console.log('User reported:', partnerId, 'by', socket.id);
-	});
+  // End chat session for both users
+  console.log('[REPORT] Ending chat session for reporter:', socket.id);
+  endSession(socket.id, 'chat_ended');
+  socket.emit('report_feedback', true);
+  console.log('[REPORT] Report completed. Reporter:', socket.id, 'Reported:', partnerId);
+});
 
 
   // --- END CHAT ---

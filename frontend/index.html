@@ -529,7 +529,7 @@
         <span id="statusText">Idle</span>
       </div>
     </div>
-    <button id="infoBtn" class="hidden">ℹ</button>
+    <button id="infoBtn">ℹ</button>
   </div>
 
   <!-- CHAT -->
@@ -642,7 +642,7 @@
     endBtn.classList.toggle('hidden', isIdle);
     skipBtn.classList.toggle('hidden', isIdle);
     inputBar.classList.toggle('hidden', isIdle);
-    infoBtn.classList.toggle('hidden', !isConnected);
+    //infoBtn.classList.toggle('hidden', !isConnected);
 
     msgInput.disabled = !isConnected;
     sendBtn.disabled = !isConnected;
@@ -761,8 +761,14 @@
   };
 */
   infoBtn.onclick = () => {
-    modal.style.display = 'flex';
-  };
+
+  // Show Report button only when stranger is connected and user is not blocked
+  reportBtn.style.display =
+    (state === "CONNECTED" && !isBlocked) ? "block" : "none";
+
+  modal.style.display = 'flex';
+};
+
 
   closeModal.onclick = () => {
     modal.style.display = 'none';
